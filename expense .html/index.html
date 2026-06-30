@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ghar Kharcha — Home Ledger</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#1C2541;
+    --parchment:#FAF7F0;
+    --parchment-line:#E8E1D3;
+    --sage:#6B8F71;
+    --sage-dim:#E4ECE5;
+    --clay:#C1654A;
+    --clay-dim:#F5E5DF;
+    --gold:#D4A574;
+    --charcoal:#2D2D2A;
+    --charcoal-soft:#6B6862;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  body{
+    font-family:'IBM Plex Mono', monospace;
+    background:var(--parchment);
+    color:var(--charcoal);
+    min-height:100vh;
+    padding:32px 20px 60px;
+  }
+
+  .wrap{max-width:760px; margin:0 auto;}
+
+  /* ---- Header / Balance Hero ---- */
+  .hero{
+    text-align:center;
+    padding:28px 0 36px;
+    border-bottom:1px solid var(--parchment-line);
+    margin-bottom:28px;
+    position:relative;
+  }
+  .hero-label{
+    font-size:11px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--charcoal-soft);
+    margin-bottom:10px;
+  }
+  .hero-balance{
+    font-family:'Lora', serif;
+    font-weight:700;
+    font-size:clamp(40px, 9vw, 64px);
+    color:var(--ink);
+    line-height:1;
+    transition:transform 0.15s ease;
+  }
+  .hero-balance.tick{ transform:scale(1.03); }
+  .hero-balance .cents{ font-size:0.5em; color:var(--charcoal-soft); }
+  .hero-sub{
+    margin-top:14px;
+    display:flex;
+    justify-content:center;
+    gap:28px;
+    font-size:13px;
+  }
+  .hero-sub span{ display:flex; align-items:center; gap:6px; }
+  .dot{ width:7px; height:7px; border-radius:50%; display:inline-block; }
+  .dot.in{ background:var(--sage); }
+  .dot.out{ background:var(--clay); }
+  .hero-sub b{ font-weight:600; }
+
+  /* ---- Add Entry Form ---- */
+  .panel{
+    background:#fff;
+    border:1px solid var(--parchment-line);
+    border-radius:10px;
+    padding:20px;
+    margin-bottom:24px;
+  }
+  .panel-title{
+    font-family:'Lora', serif;
+    font-weight:600;
+    font-size:16px;
+    color:var(--ink);
+    margin-bottom:16px;
+  }
+
+  .toggle-row{
+    display:flex;
+    background:var(--parchment);
+    border-radius:8px;
+    padding:4px;
+    margin-bottom:14px;
+    gap:4px;
+  }
+  .toggle-btn{
+    flex:1;
+    border:none;
+    background:transparent;
+    padding:9px 0;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    font-weight:500;
+    letter-spacing:0.02em;
+    border-radius:6px;
+    cursor:pointer;
+    color:var(--charcoal-soft);
+    transition:all 0.15s ease;
+  }
+  .toggle-btn.active.income{ background:var(--sage-dim); color:#3E5C42; }
+  .toggle-btn.active.expense{ background:var(--clay-dim); color:#8C4631; }
+
+  .field-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .field{ flex:1; }
+  .field.amt{ flex:0 0 130px; }
+  label{
+    display:block;
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--charcoal-soft);
+    margin-bottom:6px;
+  }
+  input, select{
+    width:100%;
+    border:1px solid var(--parchment-line);
+    background:var(--parchment);
+    border-radius:6px;
+    padding:10px 12px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    color:var(--charcoal);
+    outline:none;
+    transition:border-color 0.15s ease;
+  }
+  input:focus, select:focus{ border-color:var(--gold); }
+  input::placeholder{ color:#B8B2A4; }
+
+  .add-btn{
+    width:100%;
+    margin-top:6px;
+    padding:11px 0;
+    border:none;
+    border-radius:6px;
+    background:var(--ink);
+    color:var(--parchment);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:0.03em;
+    cursor:pointer;
+    transition:background 0.15s ease;
+  }
+  .add-btn:hover{ background:#14192F; }
+  .add-btn:disabled{ background:#C9C4B6; cursor:not-allowed; }
+
+  /* ---- Monthly Summary ---- */
+  .summary-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:10px;
+    margin-bottom:24px;
+  }
+  .sum-card{
+    background:#fff;
+    border:1px solid var(--parchment-line);
+    border-radius:10px;
+    padding:16px 14px;
+  }
+  .sum-card .lbl{
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--charcoal-soft);
+    margin-bottom:8px;
+  }
+  .sum-card .val{
+    font-family:'Lora', serif;
+    font-weight:700;
+    font-size:22px;
+    color:var(--ink);
+  }
+  .sum-card.in .val{ color:#3E5C42; }
+  .sum-card.out .val{ color:#8C4631; }
+
+  .month-nav{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    margin-bottom:14px;
+    font-family:'Lora', serif;
+    font-weight:600;
+    font-size:15px;
+    color:var(--ink);
+  }
+  .month-nav button{
+    background:none;
+    border:1px solid var(--parchment-line);
+    width:30px; height:30px;
+    border-radius:50%;
+    cursor:pointer;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    color:var(--ink);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .month-nav button:hover{ border-color:var(--gold); }
+
+  /* ---- Chart ---- */
+  .chart-wrap{
+    background:#fff;
+    border:1px solid var(--parchment-line);
+    border-radius:10px;
+    padding:20px;
+    margin-bottom:24px;
+  }
+  .chart-tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .chart-tab{
+    border:1px solid var(--parchment-line);
+    background:var(--parchment);
+    padding:6px 12px;
+    border-radius:14px;
+    font-size:11.5px;
+    font-family:'IBM Plex Mono', monospace;
+    cursor:pointer;
+    color:var(--charcoal-soft);
+  }
+  .chart-tab.active{
+    background:var(--ink);
+    color:var(--parchment);
+    border-color:var(--ink);
+  }
+  svg.chart{ width:100%; height:auto; display:block; }
+  .baseline{ stroke:var(--parchment-line); stroke-width:1; stroke-dasharray:3 4; }
+  .grid-line{ stroke:var(--parchment-line); stroke-width:1; }
+  .axis-label{ font-family:'IBM Plex Mono', monospace; font-size:10px; fill:var(--charcoal-soft); }
+  .bar-in{ fill:var(--sage); }
+  .bar-out{ fill:var(--clay); }
+  .bal-line{ fill:none; stroke:var(--gold); stroke-width:2; }
+  .bal-dot{ fill:var(--gold); stroke:#fff; stroke-width:2; }
+  .empty-chart-msg{
+    text-align:center;
+    color:var(--charcoal-soft);
+    font-size:13px;
+    padding:40px 0;
+  }
+
+  /* ---- Transactions List ---- */
+  .list-wrap{
+    background:#fff;
+    border:1px solid var(--parchment-line);
+    border-radius:10px;
+    overflow:hidden;
+  }
+  .list-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px 20px;
+    border-bottom:1px solid var(--parchment-line);
+  }
+  .list-title{
+    font-family:'Lora', serif;
+    font-weight:600;
+    font-size:16px;
+    color:var(--ink);
+  }
+  .list-count{ font-size:11.5px; color:var(--charcoal-soft); }
+
+  .txn{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:13px 20px;
+    border-bottom:1px solid var(--parchment-line);
+    gap:12px;
+  }
+  .txn:last-child{ border-bottom:none; }
+  .txn-left{ display:flex; align-items:center; gap:12px; min-width:0; }
+  .txn-icon{
+    width:34px; height:34px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+    flex-shrink:0;
+  }
+  .txn-icon.in{ background:var(--sage-dim); }
+  .txn-icon.out{ background:var(--clay-dim); }
+  .txn-info{ min-width:0; }
+  .txn-desc{
+    font-size:14px;
+    font-weight:500;
+    color:var(--charcoal);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .txn-meta{
+    font-size:11px;
+    color:var(--charcoal-soft);
+    margin-top:2px;
+  }
+  .txn-right{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .txn-amt{ font-size:14px; font-weight:600; }
+  .txn-amt.in{ color:#3E5C42; }
+  .txn-amt.out{ color:#8C4631; }
+  .txn-del{
+    background:none;
+    border:none;
+    color:#C9C4B6;
+    cursor:pointer;
+    font-size:15px;
+    padding:4px;
+    line-height:1;
+  }
+  .txn-del:hover{ color:var(--clay); }
+
+  .empty-list{
+    text-align:center;
+    padding:48px 20px;
+    color:var(--charcoal-soft);
+  }
+  .empty-list .big{
+    font-family:'Lora', serif;
+    font-size:18px;
+    color:var(--ink);
+    margin-bottom:6px;
+  }
+  .empty-list .small{ font-size:12.5px; }
+
+  @media (max-width:480px){
+    .summary-grid{ grid-template-columns:1fr; }
+    .field-row{ flex-direction:column; }
+    .field.amt{ flex:1; }
+    .hero-sub{ gap:18px; flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="hero-label">Current Balance</div>
+    <div class="hero-balance" id="balanceDisplay">₹0<span class="cents">.00</span></div>
+    <div class="hero-sub">
+      <span><span class="dot in"></span>In <b id="totalIn">₹0.00</b></span>
+      <span><span class="dot out"></span>Out <b id="totalOut">₹0.00</b></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Add Entry</div>
+    <div class="toggle-row">
+      <button class="toggle-btn active income" id="btnTypeIncome" type="button">Income</button>
+      <button class="toggle-btn expense" id="btnTypeExpense" type="button">Expense</button>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="descInput">Description</label>
+        <input type="text" id="descInput" placeholder="e.g. Kirana shopping" maxlength="60">
+      </div>
+      <div class="field amt">
+        <label for="amtInput">Amount</label>
+        <input type="number" id="amtInput" placeholder="0.00" step="0.01" min="0">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="catInput">Category</label>
+        <select id="catInput"></select>
+      </div>
+      <div class="field">
+        <label for="dateInput">Date</label>
+        <input type="date" id="dateInput">
+      </div>
+    </div>
+    <button class="add-btn" id="addBtn" type="button">Add to Ledger</button>
+  </div>
+
+  <div class="month-nav">
+    <button id="prevMonth" type="button">‹</button>
+    <span id="monthLabel">—</span>
+    <button id="nextMonth" type="button">›</button>
+  </div>
+
+  <div class="summary-grid">
+    <div class="sum-card in">
+      <div class="lbl">Income</div>
+      <div class="val" id="monthIn">₹0</div>
+    </div>
+    <div class="sum-card out">
+      <div class="lbl">Expenses</div>
+      <div class="val" id="monthOut">₹0</div>
+    </div>
+    <div class="sum-card">
+      <div class="lbl">Net</div>
+      <div class="val" id="monthNet">₹0</div>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-tabs">
+      <button class="chart-tab active" data-view="daily" type="button">Daily flow</button>
+      <button class="chart-tab" data-view="balance" type="button">Balance trend</button>
+      <button class="chart-tab" data-view="category" type="button">By category</button>
+    </div>
+    <div id="chartHost"></div>
+  </div>
+
+  <div class="list-wrap">
+    <div class="list-header">
+      <div class="list-title">Transactions</div>
+      <div class="list-count" id="txnCount">0 entries</div>
+    </div>
+    <div id="txnList"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- State ----------
+  var entries = []; // {id, type:'income'|'expense', desc, amount, category, date}
+  var currentType = 'income';
+  var chartView = 'daily';
+  var viewMonth = new Date(); viewMonth.setDate(1);
+
+  var CATS = {
+    income:['Salary','Freelance','Business','Rental Income','Interest/FD','Gift','Other'],
+    expense:['Groceries (Kirana)','Rent','EMI/Loan','Electricity','LPG/Gas','Water Bill','Mobile/Internet','School Fees','Domestic Help','Transport/Fuel','Medical','Shopping','Entertainment','Festivals/Pooja','Other']
+  };
+
+  // ---------- Elements ----------
+  var $ = function(id){ return document.getElementById(id); };
+  var balanceDisplay = $('balanceDisplay');
+  var totalInEl = $('totalIn');
+  var totalOutEl = $('totalOut');
+  var descInput = $('descInput');
+  var amtInput = $('amtInput');
+  var catInput = $('catInput');
+  var dateInput = $('dateInput');
+  var addBtn = $('addBtn');
+  var btnTypeIncome = $('btnTypeIncome');
+  var btnTypeExpense = $('btnTypeExpense');
+  var monthLabel = $('monthLabel');
+  var monthIn = $('monthIn');
+  var monthOut = $('monthOut');
+  var monthNet = $('monthNet');
+  var chartHost = $('chartHost');
+  var txnList = $('txnList');
+  var txnCount = $('txnCount');
+
+  // ---------- Helpers ----------
+  function fmt(n){
+    var neg = n < 0;
+    n = Math.abs(n);
+    var s = n.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+    return (neg ? '-₹' : '₹') + s;
+  }
+  function fmtWhole(n){
+    var neg = n < 0;
+    n = Math.abs(Math.round(n));
+    return (neg ? '-₹' : '₹') + n.toLocaleString('en-IN');
+  }
+  function uid(){ return 'e' + Math.random().toString(36).slice(2,10); }
+  function todayStr(){
+    var d = new Date();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+  function monthKey(d){ return d.getFullYear() + '-' + d.getMonth(); }
+  function sameMonth(dateStr, ref){
+    var d = new Date(dateStr + 'T00:00:00');
+    return monthKey(d) === monthKey(ref);
+  }
+  function catIcon(cat){
+    var map = {
+      Salary:'💰', Freelance:'🧾', Business:'🏪', 'Rental Income':'🏠', 'Interest/FD':'📈', Gift:'🎁',
+      'Groceries (Kirana)':'🛒', Rent:'🏠', 'EMI/Loan':'🏦', Electricity:'💡', 'LPG/Gas':'🔥',
+      'Water Bill':'🚰', 'Mobile/Internet':'📱', 'School Fees':'🎒', 'Domestic Help':'🧹',
+      'Transport/Fuel':'🛵', Medical:'🩺', Shopping:'🛍️', Entertainment:'🎬', 'Festivals/Pooja':'🪔',
+      Other:'•'
+    };
+    return map[cat] || '•';
+  }
+
+  dateInput.value = todayStr();
+  refreshCategoryOptions();
+
+  // ---------- Type toggle ----------
+  function setType(t){
+    currentType = t;
+    btnTypeIncome.classList.toggle('active', t==='income');
+    btnTypeExpense.classList.toggle('active', t==='expense');
+    refreshCategoryOptions();
+  }
+  function refreshCategoryOptions(){
+    var list = CATS[currentType];
+    catInput.innerHTML = list.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
+  }
+  btnTypeIncome.addEventListener('click', function(){ setType('income'); });
+  btnTypeExpense.addEventListener('click', function(){ setType('expense'); });
+
+  // ---------- Add entry ----------
+  addBtn.addEventListener('click', function(){
+    var desc = descInput.value.trim();
+    var amount = parseFloat(amtInput.value);
+    var category = catInput.value;
+    var date = dateInput.value || todayStr();
+
+    if(!desc){ descInput.focus(); descInput.style.borderColor = 'var(--clay)'; setTimeout(function(){descInput.style.borderColor='';},1200); return; }
+    if(!amount || amount <= 0){ amtInput.focus(); amtInput.style.borderColor = 'var(--clay)'; setTimeout(function(){amtInput.style.borderColor='';},1200); return; }
+
+    entries.push({ id: uid(), type: currentType, desc: desc, amount: amount, category: category, date: date });
+
+    descInput.value = '';
+    amtInput.value = '';
+    descInput.focus();
+
+    viewMonth = new Date(date + 'T00:00:00'); viewMonth.setDate(1);
+
+    render();
+    tickBalance();
+  });
+
+  amtInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') addBtn.click(); });
+  descInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') addBtn.click(); });
+
+  function deleteEntry(id){
+    entries = entries.filter(function(e){ return e.id !== id; });
+    render();
+  }
+
+  function tickBalance(){
+    balanceDisplay.classList.add('tick');
+    setTimeout(function(){ balanceDisplay.classList.remove('tick'); }, 150);
+  }
+
+  // ---------- Month nav ----------
+  $('prevMonth').addEventListener('click', function() {
+    viewMonth.setMonth(viewMonth.getMonth()-1);
+    render();
+  });
+  $('nextMonth').addEventListener('click', function(){
+    viewMonth.setMonth(viewMonth.getMonth()+1);
+    render();
+  });
+
+  // ---------- Chart tabs ----------
+  document.querySelectorAll('.chart-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.chart-tab').forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      chartView = tab.getAttribute('data-view');
+      renderChart();
+    });
+  });
+
+  // ---------- Render: Balance + totals ----------
+  function renderBalance(){
+    var totalIn = 0, totalOut = 0;
+    entries.forEach(function(e){
+      if(e.type === 'income') totalIn += e.amount; else totalOut += e.amount;
+    });
+    var bal = totalIn - totalOut;
+    var neg = bal < 0;
+    var whole = Math.floor(Math.abs(bal));
+    var cents = Math.round((Math.abs(bal) - whole) * 100);
+    balanceDisplay.innerHTML = (neg ? '-$' : '$') + whole.toLocaleString('en-US') +
+      '<span class="cents">.' + String(cents).padStart(2,'0') + '</span>';
+    totalInEl.textContent = fmt(totalIn);
+    totalOutEl.textContent = fmt(totalOut);
+  }
+
+  // ---------- Render: Monthly summary ----------
+  function renderMonthSummary(){
+    monthLabel.textContent = viewMonth.toLocaleDateString('en-US', {month:'long', year:'numeric'});
+    var inc = 0, exp = 0;
+    entries.forEach(function(e){
+      if(!sameMonth(e.date, viewMonth)) return;
+      if(e.type === 'income') inc += e.amount; else exp += e.amount;
+    });
+    monthIn.textContent = fmtWhole(inc);
+    monthOut.textContent = fmtWhole(exp);
+    var net = inc - exp;
+    monthNet.textContent = (net < 0 ? '-' : '') + fmtWhole(Math.abs(net));
+    monthNet.style.color = net >= 0 ? '#3E5C42' : '#8C4631';
+  }
+
+  // ---------- Render: Chart ----------
+  function renderChart(){
+    var monthEntries = entries.filter(function(e){ return sameMonth(e.date, viewMonth); });
+
+    if(monthEntries.length === 0){
+      chartHost.innerHTML = '<div class="empty-chart-msg">No entries this month yet — add one above to see it charted.</div>';
+      return;
+    }
+
+    if(chartView === 'daily') renderDailyChart(monthEntries);
+    else if(chartView === 'balance') renderBalanceChart(monthEntries);
+    else renderCategoryChart(monthEntries);
+  }
+
+  function daysInMonth(d){ return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); }
+
+  function renderDailyChart(monthEntries){
+    var nDays = daysInMonth(viewMonth);
+    var byDay = {};
+    for(var i=1;i<=nDays;i++) byDay[i] = {in:0,out:0};
+    monthEntries.forEach(function(e){
+      var d = new Date(e.date+'T00:00:00').getDate();
+      byDay[d][e.type==='income'?'in':'out'] += e.amount;
+    });
+
+    var maxVal = 1;
+    Object.keys(byDay).forEach(function(k){ maxVal = Math.max(maxVal, byDay[k].in, byDay[k].out); });
+
+    var W = 680, H = 220, padL = 36, padB = 24, padT = 10;
+    var plotW = W - padL - 10;
+    var plotH = H - padB - padT;
+    var barSlot = plotW / nDays;
+    var barW = Math.max(2, barSlot * 0.32);
+
+    var bars = '';
+    for(var d=1; d<=nDays; d++){
+      var x0 = padL + (d-1)*barSlot + barSlot/2;
+      var inH = (byDay[d].in / maxVal) * plotH;
+      var outH = (byDay[d].out / maxVal) * plotH;
+      var baseY = H - padB;
+      if(byDay[d].in > 0){
+        bars += '<rect class="bar-in" x="'+(x0-barW-1)+'" y="'+(baseY-inH)+'" width="'+barW+'" height="'+inH+'" rx="1.5"></rect>';
+      }
+      if(byDay[d].out > 0){
+        bars += '<rect class="bar-out" x="'+(x0+1)+'" y="'+(baseY-outH)+'" width="'+barW+'" height="'+outH+'" rx="1.5"></rect>';
+      }
+      if(nDays <= 31 && (d===1 || d%5===0 || d===nDays)){
+        bars += '<text class="axis-label" x="'+x0+'" y="'+(H-6)+'" text-anchor="middle">'+d+'</text>';
+      }
+    }
+
+    var svg = '<svg class="chart" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">' +
+      '<line class="baseline" x1="'+padL+'" y1="'+(H-padB)+'" x2="'+(W-6)+'" y2="'+(H-padB)+'"></line>' +
+      bars +
+      '</svg>';
+    chartHost.innerHTML = svg;
+  }
+
+  function renderBalanceChart(monthEntries){
+    // running balance across ALL entries up to and through this month, plotted day by day for this month
+    var nDays = daysInMonth(viewMonth);
+    var priorBalance = 0;
+    entries.forEach(function(e){
+      var d = new Date(e.date+'T00:00:00');
+      if(monthKey(d) < monthKey(viewMonth) || (d.getFullYear()===viewMonth.getFullYear() && d < viewMonth)){
+        priorBalance += (e.type==='income' ? e.amount : -e.amount);
+      }
+    });
+
+    var byDayDelta = {};
+    for(var i=1;i<=nDays;i++) byDayDelta[i]=0;
+    monthEntries.forEach(function(e){
+      var d = new Date(e.date+'T00:00:00').getDate();
+      byDayDelta[d] += (e.type==='income' ? e.amount : -e.amount);
+    });
+
+    var running = priorBalance;
+    var points = [];
+    for(var d=1; d<=nDays; d++){
+      running += byDayDelta[d];
+      points.push(running);
+    }
+
+    var minV = Math.min.apply(null, points.concat([priorBalance]));
+    var maxV = Math.max.apply(null, points.concat([priorBalance]));
+    if(minV === maxV){ minV -= 1; maxV += 1; }
+    var range = maxV - minV;
+
+    var W = 680, H = 220, padL = 44, padR = 10, padB = 24, padT = 14;
+    var plotW = W - padL - padR;
+    var plotH = H - padB - padT;
+
+    function xFor(i){ return padL + (i/(nDays-1 || 1)) * plotW; }
+    function yFor(v){ return padT + (1 - (v - minV)/range) * plotH; }
+
+    var path = '';
+    points.forEach(function(v,i){
+      var x = xFor(i), y = yFor(v);
+      path += (i===0?'M':'L') + x.toFixed(1) + ' ' + y.toFixed(1) + ' ';
+    });
+
+    var zeroY = (minV <= 0 && maxV >= 0) ? yFor(0) : null;
+
+    var dots = points.map(function(v,i){
+      return '<circle class="bal-dot" cx="'+xFor(i).toFixed(1)+'" cy="'+yFor(v).toFixed(1)+'" r="2.5"></circle>';
+    }).join('');
+
+    var labels = '';
+    for(var d=1; d<=nDays; d++){
+      if(d===1 || d%5===0 || d===nDays){
+        labels += '<text class="axis-label" x="'+xFor(d-1).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle">'+d+'</text>';
+      }
+    }
+
+    var zeroLine = zeroY !== null ? '<line class="grid-line" x1="'+padL+'" y1="'+zeroY.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+zeroY.toFixed(1)+'"></line>' : '';
+
+    var topLabel = '<text class="axis-label" x="4" y="'+(padT+4)+'">'+fmtWhole(maxV)+'</text>';
+    var botLabel = '<text class="axis-label" x="4" y="'+(H-padB)+'">'+fmtWhole(minV)+'</text>';
+
+    var svg = '<svg class="chart" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">' +
+      '<line class="baseline" x1="'+padL+'" y1="'+(H-padB)+'" x2="'+(W-padR)+'" y2="'+(H-padB)+'"></line>' +
+      zeroLine + topLabel + botLabel +
+      '<path class="bal-line" d="'+path.trim()+'"></path>' +
+      dots + labels +
+      '</svg>';
+    chartHost.innerHTML = svg;
+  }
+
+  function renderCategoryChart(monthEntries){
+    var expenses = monthEntries.filter(function(e){ return e.type==='expense'; });
+    if(expenses.length === 0){
+      chartHost.innerHTML = '<div class="empty-chart-msg">No expenses this month to break down by category.</div>';
+      return;
+    }
+    var byCat = {};
+    expenses.forEach(function(e){
+      byCat[e.category] = (byCat[e.category]||0) + e.amount;
+    });
+    var catArr = Object.keys(byCat).map(function(k){ return {cat:k, amt:byCat[k]}; });
+    catArr.sort(function(a,b){ return b.amt - a.amt; });
+    var maxAmt = catArr[0].amt;
+
+    var W = 680;
+    var rowH = 34;
+    var H = catArr.length * rowH + 16;
+    var padL = 155, padR = 70;
+    var barMaxW = W - padL - padR;
+
+    var rows = catArr.map(function(c,i){
+      var y = 12 + i*rowH;
+      var bw = Math.max(2, (c.amt / maxAmt) * barMaxW);
+      return '<text class="axis-label" x="'+(padL-10)+'" y="'+(y+15)+'" text-anchor="end" style="font-size:11.5px;">'+catIcon(c.cat)+' '+c.cat+'</text>' +
+        '<rect class="bar-out" x="'+padL+'" y="'+y+'" width="'+bw+'" height="18" rx="3"></rect>' +
+        '<text class="axis-label" x="'+(padL+bw+8)+'" y="'+(y+14)+'" style="font-size:11.5px;">'+fmtWhole(c.amt)+'</text>';
+    }).join('');
+
+    var svg = '<svg class="chart" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">' + rows + '</svg>';
+    chartHost.innerHTML = svg;
+  }
+
+  // ---------- Render: Transaction list ----------
+  function renderList(){
+    var sorted = entries.slice().sort(function(a,b){
+      if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return 0;
+    });
+
+    txnCount.textContent = sorted.length + (sorted.length===1 ? ' entry' : ' entries');
+
+    if(sorted.length === 0){
+      txnList.innerHTML = '<div class="empty-list">' +
+        '<div class="big">The ledger is empty</div>' +
+        '<div class="small">Add your first income or expense above.</div>' +
+        '</div>';
+      return;
+    }
+
+    txnList.innerHTML = sorted.map(function(e){
+      var d = new Date(e.date+'T00:00:00');
+      var dateLabel = d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+      var sign = e.type === 'income' ? '+' : '−';
+      return '<div class="txn" data-id="'+e.id+'">' +
+        '<div class="txn-left">' +
+          '<div class="txn-icon '+(e.type==='income'?'in':'out')+'">'+catIcon(e.category)+'</div>' +
+          '<div class="txn-info">' +
+            '<div class="txn-desc">'+escapeHtml(e.desc)+'</div>' +
+            '<div class="txn-meta">'+e.category+' · '+dateLabel+'</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="txn-right">' +
+          '<div class="txn-amt '+(e.type==='income'?'in':'out')+'">'+sign+fmt(e.amount)+'</div>' +
+          '<button class="txn-del" data-id="'+e.id+'" title="Delete">✕</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    txnList.querySelectorAll('.txn-del').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        deleteEntry(btn.getAttribute('data-id'));
+      });
+    });
+  }
+
+  function escapeHtml(s){
+    var div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  // ---------- Master render ----------
+  function render(){
+    renderBalance();
+    renderMonthSummary();
+    renderChart();
+    renderList();
+  }
+
+  // ---------- Seed with a few sample entries so charts/UI aren't empty on load ----------
+  (function seed(){
+    var now = new Date();
+    var y = now.getFullYear(), m = now.getMonth();
+    function ds(day){ return y + '-' + String(m+1).padStart(2,'0') + '-' + String(day).padStart(2,'0'); }
+    entries.push({id:uid(), type:'income', desc:'Monthly salary', amount:65000, category:'Salary', date:ds(1)});
+    entries.push({id:uid(), type:'expense', desc:'House rent', amount:18000, category:'Rent', date:ds(2)});
+    entries.push({id:uid(), type:'expense', desc:'Home loan EMI', amount:14500, category:'EMI/Loan', date:ds(3)});
+    entries.push({id:uid(), type:'expense', desc:'Monthly kirana', amount:6200, category:'Groceries (Kirana)', date:ds(4)});
+    entries.push({id:uid(), type:'income', desc:'Freelance project', amount:9000, category:'Freelance', date:ds(6)});
+    entries.push({id:uid(), type:'expense', desc:'Electricity bill', amount:2100, category:'Electricity', date:ds(7)});
+    entries.push({id:uid(), type:'expense', desc:'LPG cylinder', amount:1050, category:'LPG/Gas', date:ds(8)});
+    entries.push({id:uid(), type:'expense', desc:'Jio recharge + WiFi', amount:999, category:'Mobile/Internet', date:ds(9)});
+    entries.push({id:uid(), type:'expense', desc:"Kids' school fees", amount:4500, category:'School Fees', date:ds(10)});
+    entries.push({id:uid(), type:'expense', desc:'Maid + cook salary', amount:3500, category:'Domestic Help', date:ds(11)});
+    entries.push({id:uid(), type:'expense', desc:'Petrol for bike', amount:1200, category:'Transport/Fuel', date:ds(12)});
+    entries.push({id:uid(), type:'expense', desc:'Weekend movie', amount:600, category:'Entertainment', date:ds(14)});
+  })();
+
+  render();
+
+})();
+</script>
+</body>
+</html>
